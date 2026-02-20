@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar Concedii 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1a1a2e; --blue: #3b82f6; --bg: #f4f6fb;
+      --white: #fff; --border: #e5e7eb; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    body { font-family: 'Lato', sans-serif; background: var(--bg); color: #333; min-height: 100vh; }
+
+    /* HEADER */
+    .header {
+      background: var(--navy); color: #fff;
+      padding: 14px 28px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+    }
+    .header h1 { font-family: 'Playfair Display', serif; font-size: 21px; font-weight: 900; }
+    .header p { color: #aab4d4; font-size: 11px; margin-top: 1px; }
+    .btn-tab {
+      padding: 7px 15px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 12px; font-weight: 700; color: #fff; font-family: 'Lato', sans-serif;
+      background: rgba(255,255,255,0.12); transition: background 0.2s;
+    }
+    .btn-tab.active { background: var(--blue); }
+    .btn-tab:hover:not(.active) { background: rgba(255,255,255,0.22); }
+
+    /* SYNC BAR */
+    .sync-bar {
+      padding: 5px 28px; font-size: 11px;
+      display: flex; align-items: center; gap: 7px;
+      background: #ecfdf5; border-bottom: 1px solid #a7f3d0; color: #065f46;
+    }
+    .sync-bar.error { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+    .sync-bar.loading { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; flex-shrink: 0; }
+    .sync-dot.error { background: #ef4444; animation: none; }
+    .sync-dot.loading { background: #3b82f6; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+    /* EMPLOYEE BAR — HORIZONTAL */
+    .emp-bar { background: var(--white); border-bottom: 1px solid var(--border); padding: 10px 28px; overflow-x: auto; }
+    .emp-bar-inner { display: flex; gap: 6px; align-items: center; min-width: max-content; }
+    .emp-label { font-size: 11px; color: #999; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-right: 4px; }
+    .emp-btn {
+      padding: 6px 13px; border-radius: 20px; border: 2px solid var(--border);
+      background: var(--white); cursor: pointer; font-size: 13px; font-weight: 700;
+      font-family: 'Lato', sans-serif; transition: all 0.18s;
+      display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    }
+    .emp-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+    .emp-btn .badge {
+      background: rgba(0,0,0,0.1); border-radius: 10px;
+      padding: 1px 7px; font-size: 11px; font-weight: 700;
+    }
+    .emp-btn.active .badge { background: rgba(255,255,255,0.28); }
+
+    /* ACTION BAR */
+    .action-bar {
+      background: #fffbeb; border-bottom: 1px solid #fde68a;
+      padding: 8px 28px; display: none;
+      align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .action-bar.visible { display: flex; }
+    .ab-left { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #78350f; flex-wrap: wrap; }
+    .ab-left strong { color: #92400e; }
+    .progress-wrap { display: flex; align-items: center; gap: 7px; }
+    .progress-bar { width: 90px; height: 7px; background: #fde68a; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s, background 0.3s; }
+    .ab-right { display: flex; gap: 7px; }
+    .btn-action {
+      padding: 7px 16px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 12px; font-weight: 700; font-family: 'Lato', sans-serif;
+      display: flex; align-items: center; gap: 5px; transition: all 0.18s;
+    }
+    .btn-save { background: #10b981; color: #fff; }
+    .btn-save:hover:not(:disabled) { background: #059669; }
+    .btn-save:disabled { background: #a7f3d0; cursor: not-allowed; color: #fff; }
+    .btn-undo { background: var(--white); color: #333; border: 1.5px solid #e5e7eb; }
+    .btn-undo:hover:not(:disabled) { background: #f9fafb; }
+    .btn-undo:disabled { color: #ccc; cursor: not-allowed; }
+
+    /* OVERLAP ALERT */
+    .overlap-alert {
+      background: #fff7ed; border-bottom: 1px solid #fed7aa;
+      padding: 7px 28px; display: none;
+      align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: #9a3412;
+    }
+    .overlap-alert.visible { display: flex; }
+    .ov-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .ov-chip { background: #fed7aa; border-radius: 12px; padding: 2px 10px; font-size: 11px; font-weight: 700; color: #9a3412; }
+
+    /* MAIN */
+    .main { padding: 18px 28px; max-width: 1200px; margin: 0 auto; }
+
+    /* LEGEND */
+    .legend { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #666; }
+    .l-box { width: 13px; height: 13px; border-radius: 3px; border: 2px solid transparent; flex-shrink: 0; }
+
+    /* MONTH NAV */
+    .month-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .nav-btn { padding: 6px 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--white); cursor: pointer; font-size: 17px; font-weight: 700; color: #333; transition: all 0.15s; }
+    .nav-btn:hover { background: #f0f0f0; }
+    .nav-btn:disabled { color: #ccc; cursor: not-allowed; }
+    .month-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; min-width: 190px; text-align: center; color: var(--navy); }
+
+    /* CALENDAR */
+    .calendar-grid { background: var(--white); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 18px; }
+    .cal-header { display: grid; grid-template-columns: repeat(7,1fr); background: var(--navy); }
+    .cal-header-cell { text-align: center; padding: 8px 0; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #aab4d4; }
+    .cal-header-cell.wknd { color: #FF6B6B; }
+    .cal-week { display: grid; grid-template-columns: repeat(7,1fr); border-bottom: 1px solid #f0f0f0; }
+    .cal-week:last-child { border-bottom: none; }
+    .cal-cell { padding: 6px 5px; min-height: 70px; height: auto; border-left: 1px solid #f0f0f0; cursor: pointer; transition: background 0.12s; position: relative; user-select: none; }
+    .cal-cell:first-child { border-left: none; }
+    .cal-cell.empty { cursor: default; background: #fafafa; }
+    .cal-cell.wknd { background: #fafafa; cursor: default; }
+    .cal-cell.hol { background: #fff5f5; cursor: default; }
+    .cal-cell.myvac { background: #e8f4fd; }
+    .cal-cell.myvac:hover { background: #dbeafe; }
+    .cal-cell.overlap { outline: 2px solid #fb923c; outline-offset: -2px; }
+    .cal-cell:not(.empty):not(.wknd):not(.hol):not(.myvac):hover { background: #f0f9ff; }
+    .day-num { width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-bottom: 3px; }
+    .day-num.today { background: var(--navy); color: #fff; font-weight: 700; }
+    .day-num.vacnum { background: var(--blue); color: #fff; font-weight: 700; }
+    .day-num.wkndnum { color: #FF6B6B; }
+    .day-num.holnum { color: #ef4444; }
+    .cell-tag { font-size: 9px; font-weight: 700; margin-bottom: 2px; line-height: 1.2; }
+    .cell-names { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+    .name-tag { font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 1.4; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .overlap-badge { position: absolute; top: 4px; right: 4px; background: #fb923c; color: #fff; border-radius: 8px; padding: 1px 5px; font-size: 9px; font-weight: 700; }
+
+    /* HOLIDAYS */
+    .box { background: var(--white); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+    .box h3 { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--navy); margin-bottom: 12px; font-weight: 700; }
+    .hol-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .hol-chip { background: #fff5f5; border: 1px solid #fca5a5; border-radius: 7px; padding: 4px 10px; font-size: 11px; color: #dc2626; }
+
+    /* OVERVIEW */
+    .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px,1fr)); gap: 14px; margin-bottom: 20px; }
+    .emp-card { background: var(--white); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); border-top: 4px solid #ccc; }
+    .ec-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .ec-name { font-weight: 700; font-size: 16px; color: var(--navy); }
+    .ec-badge { border-radius: 18px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+    .ec-stats { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
+    .ec-bar { height: 6px; background: #f0f0f0; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+    .ec-bar-fill { height: 100%; border-radius: 4px; }
+    .ec-dates-title { font-size: 10px; color: #888; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .ec-dates { display: flex; flex-wrap: wrap; gap: 3px; }
+    .dc { border-radius: 5px; padding: 2px 7px; font-size: 10px; font-weight: 600; }
+    .ec-empty { font-size: 12px; color: #bbb; font-style: italic; }
+    .ov-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f5f5f5; }
+    .ov-date { font-weight: 700; min-width: 130px; font-size: 13px; }
+    .ov-emps { display: flex; gap: 5px; flex-wrap: wrap; }
+    .ov-emp-chip { border-radius: 10px; padding: 2px 9px; font-size: 11px; font-weight: 600; }
+
+    .hidden { display: none !important; }
+    @media(max-width:600px){
+      .header,.emp-bar,.action-bar,.overlap-alert,.main{padding-left:12px;padding-right:12px;}
+      .cal-cell{min-height:48px;padding:4px 2px;}
+      .day-num{width:20px;height:20px;font-size:10px;}
+      .cell-tag,.overlap-badge{display:none;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>📅 Calendar Concedii 2026</h1>
+    <p>Gestionează zilele de concediu ale echipei</p>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn-tab active" id="tab-calendar" onclick="setView('calendar')">📆 Calendar</button>
+    <button class="btn-tab" id="tab-overview" onclick="setView('overview')">👥 Echipă</button>
+  </div>
+</div>
+
+<div class="sync-bar loading" id="sync-bar">
+  <div class="sync-dot loading" id="sync-dot"></div>
+  <span id="sync-text">Se încarcă datele...</span>
+</div>
+
+<div class="emp-bar">
+  <div class="emp-bar-inner">
+    <span class="emp-label">Angajat:</span>
+    <div id="emp-buttons" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+  </div>
+</div>
+
+<div class="action-bar" id="action-bar">
+  <div class="ab-left">
+    <span>Selectat: <strong id="ab-name">—</strong></span>
+    <span>·</span>
+    <div class="progress-wrap">
+      <span>Zile rămase: <strong id="ab-days">22</strong>/22</span>
+      <div class="progress-bar"><div class="progress-fill" id="ab-fill"></div></div>
+    </div>
+  </div>
+  <div class="ab-right">
+    <button class="btn-action btn-undo" id="btn-undo" onclick="doUndo()" disabled>↩ Anulează</button>
+    <button class="btn-action btn-save" id="btn-save" onclick="doSave()" disabled>💾 Salvează</button>
+  </div>
+</div>
+
+<div class="overlap-alert" id="overlap-alert">
+  <span>⚠️ <strong>Suprapuneri:</strong></span>
+  <div class="ov-chips" id="ov-chips"></div>
+</div>
+
+<div class="main">
+  <div id="view-calendar">
+    <div class="legend">
+      <div class="legend-item"><div class="l-box" style="background:#fff5f5;border-color:#fca5a5;"></div>Sărbătoare legală</div>
+      <div class="legend-item"><div class="l-box" style="background:#e8f4fd;border-color:#3b82f6;"></div>Concediul meu</div>
+      <div class="legend-item"><div class="l-box" style="background:#fafafa;border-color:#e5e7eb;"></div>Weekend</div>
+      <div class="legend-item"><div class="l-box" style="outline:2px solid #fb923c;outline-offset:-2px;background:#fff;border-color:transparent;"></div>Suprapunere</div>
+
+    </div>
+    <div class="month-nav">
+      <button class="nav-btn" id="btn-prev" onclick="prevMonth()">‹</button>
+      <div class="month-title" id="month-title"></div>
+      <button class="nav-btn" id="btn-next" onclick="nextMonth()">›</button>
+    </div>
+    <div id="cal-container"></div>
+    <div class="box">
+      <h3>🎉 Sărbători Legale România 2026</h3>
+      <div class="hol-list" id="hol-list"></div>
+    </div>
+  </div>
+
+  <div id="view-overview" class="hidden">
+    <h2 style="font-family:'Playfair Display',serif;font-size:22px;color:var(--navy);margin-bottom:20px;font-weight:900;">Situație Echipă 2026</h2>
+    <div class="ov-grid" id="ov-grid"></div>
+    <div class="box">
+      <h3>🔍 Suprapuneri Concediu</h3>
+      <div id="ov-overlaps"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const EMPLOYEES = ["Andreea","Ionut","Carlos","Alex","Mihai","Cristi","George","Ovidiu"];
+const TOTAL = 22, YEAR = 2026;
+const COLORS = ["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FECA57","#DDA0DD","#26de81","#fd9644"];
+const HOLIDAYS = ["2026-01-01","2026-01-02","2026-01-06","2026-01-07","2026-01-24","2026-04-10","2026-04-12","2026-04-13","2026-05-01","2026-06-01","2026-05-31","2026-08-15","2026-11-30","2026-12-01","2026-12-25","2026-12-26"];
+const HOL_NAMES = {"2026-01-01":"Anul Nou","2026-01-02":"Anul Nou","2026-01-06":"Bobotează","2026-01-07":"Sf. Ioan Botezătorul","2026-01-24":"Ziua Unirii","2026-04-10":"Vinerea Mare","2026-04-12":"Paște","2026-04-13":"Paște","2026-05-01":"Ziua Muncii","2026-05-31":"Rusalii","2026-06-01":"Ziua Copilului / Rusalii","2026-08-15":"Sf. Maria","2026-11-30":"Sf. Andrei","2026-12-01":"Ziua Națională","2026-12-25":"Crăciun","2026-12-26":"Crăciun"};
+const MF = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
+const MS = ["Ian","Feb","Mar","Apr","Mai","Iun","Iul","Aug","Sep","Oct","Nov","Dec"];
+const DN = ["L","Ma","Mi","J","V","S","D"];
+
+let user=null, month=new Date().getMonth(), vacs={}, saved={}, undo=[], dirty=false, view='calendar';
+
+// --- DATA ---
+async function load(){
+  sync('loading','Se încarcă...');
+  try{
+    const r=await fetch('/api/vacations');
+    vacs=clone(await r.json()); saved=clone(vacs); dirty=false; undo=[];
+    sync('ok','Date sincronizate ✓'); render();
+  }catch(e){ sync('error','Eroare server — lucrezi offline'); render(); }
+}
+
+async function doSave(){
+  sync('loading','Se salvează...');
+  document.getElementById('btn-save').disabled=true;
+  try{
+    await fetch('/api/vacations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(vacs)});
+    saved=clone(vacs); dirty=false; undo=[];
+    sync('ok','Salvat ✓'); renderActionBar();
+  }catch(e){ sync('error','Eroare la salvare!'); document.getElementById('btn-save').disabled=false; }
+}
+
+function doUndo(){
+  if(!undo.length) return;
+  vacs=undo.pop();
+  dirty=JSON.stringify(vacs)!==JSON.stringify(saved);
+  render();
+}
+
+function sync(t,txt){
+  const b=document.getElementById('sync-bar'),d=document.getElementById('sync-dot');
+  b.className='sync-bar '+(t==='ok'?'':t);
+  d.className='sync-dot '+(t==='ok'?'':t);
+  document.getElementById('sync-text').textContent=txt;
+}
+
+// --- HELPERS ---
+const clone = o => JSON.parse(JSON.stringify(o));
+const fmt = (y,m,d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const isWknd = (y,m,d) => { const w=new Date(y,m,d).getDay(); return w===0||w===6; };
+const isHol = s => HOLIDAYS.includes(s);
+const dim = (y,m) => new Date(y,m+1,0).getDate();
+const fdom = (y,m) => { let d=new Date(y,m,1).getDay(); return d===0?6:d-1; };
+const remain = emp => TOTAL - Object.values(vacs[emp]||{}).filter(Boolean).length;
+
+function overlaps(){
+  const map={};
+  EMPLOYEES.forEach(e=>Object.keys(vacs[e]||{}).forEach(d=>{ if(!map[d])map[d]=[]; map[d].push(e); }));
+  const r={};
+  Object.entries(map).forEach(([d,e])=>{ if(e.length>1) r[d]=e; });
+  return r;
+}
+
+// --- ACTIONS ---
+function selectUser(e){ user=(user===e?null:e); render(); }
+function prevMonth(){ if(month>0){month--;render();} }
+function nextMonth(){ if(month<11){month++;render();} }
+function setView(v){
+  view=v;
+  ['calendar','overview'].forEach(x=>{
+    document.getElementById('view-'+x).classList.toggle('hidden',v!==x);
+    document.getElementById('tab-'+x).classList.toggle('active',v===x);
+  });
+  if(v==='overview') renderOverview();
+}
+
+function toggleDay(y,m,d){
+  if(!user){ alert('Selectează mai întâi un angajat!'); return; }
+  const s=fmt(y,m,d);
+  if(isWknd(y,m,d)||isHol(s)) return;
+  undo.push(clone(vacs));
+  if(undo.length>50) undo.shift();
+  if(!vacs[user]) vacs[user]={};
+  if(vacs[user][s]){ delete vacs[user][s]; if(!Object.keys(vacs[user]).length) delete vacs[user]; }
+  else{
+    if(remain(user)<=0){ undo.pop(); alert(user+' nu mai are zile disponibile!'); return; }
+    vacs[user][s]=true;
+  }
+  dirty=true; render();
+}
+
+// --- RENDER ---
+function render(){
+  renderEmps(); renderActionBar(); renderOverlapAlert(); renderCal(); renderHols();
+  if(view==='overview') renderOverview();
+}
+
+function renderEmps(){
+  const c=document.getElementById('emp-buttons'); c.innerHTML='';
+  EMPLOYEES.forEach((e,i)=>{
+    const r=remain(e), sel=user===e, btn=document.createElement('button');
+    btn.className='emp-btn'+(sel?' active':'');
+    btn.style.cssText=`border-color:${sel?COLORS[i]:'#e5e7eb'};background:${sel?COLORS[i]:'#fff'};color:${sel?'#fff':'#333'};`;
+    btn.innerHTML=`${e} <span class="badge">${r}</span>`;
+    btn.title=`${r} zile rămase din ${TOTAL}`;
+    btn.onclick=()=>selectUser(e);
+    c.appendChild(btn);
+  });
+}
+
+function renderActionBar(){
+  const bar=document.getElementById('action-bar');
+  if(!user){ bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  const r=remain(user), pct=(r/TOTAL)*100;
+  document.getElementById('ab-name').textContent=user;
+  document.getElementById('ab-days').textContent=r;
+  const f=document.getElementById('ab-fill');
+  f.style.width=pct+'%';
+  f.style.background=r>10?'#10b981':r>5?'#f59e0b':'#ef4444';
+  document.getElementById('btn-save').disabled=!dirty;
+  document.getElementById('btn-undo').disabled=!undo.length;
+}
+
+function renderOverlapAlert(){
+  const ov=overlaps(), entries=Object.entries(ov).sort(([a],[b])=>a.localeCompare(b));
+  const al=document.getElementById('overlap-alert');
+  if(!entries.length){ al.classList.remove('visible'); return; }
+  al.classList.add('visible');
+  document.getElementById('ov-chips').innerHTML=entries.slice(0,7).map(([d,e])=>{
+    const[,m,day]=d.split('-');
+    return `<span class="ov-chip">${parseInt(day)} ${MS[parseInt(m)-1]}: ${e.join(', ')}</span>`;
+  }).join('')+(entries.length>7?`<span class="ov-chip">+${entries.length-7}</span>`:'');
+}
+
+function renderCal(){
+  document.getElementById('month-title').textContent=`${MF[month]} ${YEAR}`;
+  document.getElementById('btn-prev').disabled=month===0;
+  document.getElementById('btn-next').disabled=month===11;
+  const ov=overlaps(), c=document.getElementById('cal-container'); c.innerHTML='';
+  const g=document.createElement('div'); g.className='calendar-grid';
+  const hdr=document.createElement('div'); hdr.className='cal-header';
+  DN.forEach((n,i)=>{ const x=document.createElement('div'); x.className='cal-header-cell'+(i>=5?' wknd':''); x.textContent=n; hdr.appendChild(x); });
+  g.appendChild(hdr);
+  const d0=dim(YEAR,month), f=fdom(YEAR,month), cells=[];
+  for(let i=0;i<f;i++) cells.push(null);
+  for(let d=1;d<=d0;d++) cells.push(d);
+  while(cells.length%7) cells.push(null);
+  const today=new Date();
+  for(let wi=0;wi<cells.length/7;wi++){
+    const row=document.createElement('div'); row.className='cal-week';
+    cells.slice(wi*7,wi*7+7).forEach((d,di)=>{
+      const cell=document.createElement('div'); cell.className='cal-cell';
+      if(!d){ cell.classList.add('empty'); row.appendChild(cell); return; }
+      const s=fmt(YEAR,month,d), wk=isWknd(YEAR,month,d), hl=isHol(s);
+      const mv=user&&vacs[user]?.[s], isT=today.getDate()===d&&today.getMonth()===month&&today.getFullYear()===YEAR;
+      const hasOv=ov[s]&&ov[s].length>1;
+      if(wk) cell.classList.add('wknd');
+      else if(hl) cell.classList.add('hol');
+      else if(mv) cell.classList.add('myvac');
+      if(hasOv) cell.classList.add('overlap');
+      if(!wk&&!hl) cell.onclick=()=>toggleDay(YEAR,month,d);
+      const dn=document.createElement('div'); dn.className='day-num';
+      if(isT) dn.classList.add('today');
+      else if(mv) dn.classList.add('vacnum');
+      else if(wk) dn.classList.add('wkndnum');
+      else if(hl) dn.classList.add('holnum');
+      dn.textContent=d; cell.appendChild(dn);
+      if(hl){ const t=document.createElement('div'); t.className='cell-tag'; t.style.color='#ef4444'; t.textContent='🎉 '+(HOL_NAMES[s]||'Liber'); cell.appendChild(t); }
+      if(hasOv){ const b=document.createElement('div'); b.className='overlap-badge'; b.textContent=ov[s].length+'👥'; b.title=ov[s].join(', '); cell.appendChild(b); }
+      // Arata TOTI angajatii care au concediu in ziua respectiva
+      const allOnDay=EMPLOYEES.filter(e=>vacs[e]?.[s]);
+      if(allOnDay.length){ const dd=document.createElement('div'); dd.className='cell-names'; allOnDay.forEach(e=>{ const tag=document.createElement('div'); tag.className='name-tag'; const ci=EMPLOYEES.indexOf(e); tag.style.background=COLORS[ci]+'44'; tag.style.borderLeft=`2px solid ${COLORS[ci]}`; tag.style.color='#111'; tag.style.fontWeight= e===user ? '900' : '700'; tag.textContent= e===user ? '✈ '+e : e; dd.appendChild(tag); }); cell.appendChild(dd); }
+      row.appendChild(cell);
+    });
+    g.appendChild(row);
+  }
+  c.appendChild(g);
+}
+
+function renderHols(){
+  const c=document.getElementById('hol-list'); c.innerHTML='';
+  HOLIDAYS.forEach(h=>{ const[,m,d]=h.split('-'); const ch=document.createElement('div'); ch.className='hol-chip'; ch.textContent=`${parseInt(d)} ${MF[parseInt(m)-1]} — ${HOL_NAMES[h]||''}`; c.appendChild(ch); });
+}
+
+function renderOverview(){
+  const ov=overlaps(), g=document.getElementById('ov-grid'); g.innerHTML='';
+  EMPLOYEES.forEach((emp,i)=>{
+    const r=remain(emp), used=TOTAL-r, pct=(used/TOTAL)*100, dates=Object.keys(vacs[emp]||{}).sort();
+    const card=document.createElement('div'); card.className='emp-card'; card.style.borderTopColor=COLORS[i];
+    card.innerHTML=`
+      <div class="ec-head">
+        <div class="ec-name">${emp}</div>
+        <div class="ec-badge" style="background:${COLORS[i]}22;">${r} rămase</div>
+      </div>
+      <div class="ec-stats"><span>${used} folosite</span><span>${TOTAL} total</span></div>
+      <div class="ec-bar"><div class="ec-bar-fill" style="width:${pct}%;background:${COLORS[i]};"></div></div>
+      ${dates.length?`<div class="ec-dates-title">Zile planificate:</div><div class="ec-dates">${dates.map(d=>{const[,m,day]=d.split('-');return`<span class="dc" style="background:${COLORS[i]}22;border:1px solid ${COLORS[i]}88;">${parseInt(day)} ${MS[parseInt(m)-1]}</span>`;}).join('')}</div>`:'<div class="ec-empty">Nicio zi planificată</div>'}
+    `;
+    g.appendChild(card);
+  });
+  const entries=Object.entries(ov).sort(([a],[b])=>a.localeCompare(b));
+  const oc=document.getElementById('ov-overlaps');
+  if(!entries.length){ oc.innerHTML='<p style="color:#aaa;font-style:italic;font-size:12px;">Nicio suprapunere momentan.</p>'; return; }
+  oc.innerHTML=entries.map(([d,e])=>{
+    const[,m,day]=d.split('-');
+    return`<div class="ov-row"><div class="ov-date">${parseInt(day)} ${MF[parseInt(m)-1]}</div><div class="ov-emps">${e.map(emp=>`<span class="ov-emp-chip" style="background:${COLORS[EMPLOYEES.indexOf(emp)]}22;border:1px solid ${COLORS[EMPLOYEES.indexOf(emp)]}88;">${emp}</span>`).join('')}</div></div>`;
+  }).join('');
+}
+
+// --- INIT ---
+load();
+setInterval(async()=>{
+  if(dirty) return;
+  try{ const r=await fetch('/api/vacations'); vacs=clone(await r.json()); saved=clone(vacs); render(); sync('ok','Actualizat ✓'); }catch(e){}
+},30000);
+window.addEventListener('beforeunload',e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
+</script>
+</body>
+</html>
