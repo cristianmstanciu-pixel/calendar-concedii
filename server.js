@@ -1,44 +1,53 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const { MongoClient } = require('mongodb');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data', 'vacations.json');
+const MONGO_URI = process.env.MONGO_URI;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Asigura ca folderul data exista
-if (!fs.existsSync(path.join(__dirname, 'data'))) {
-  fs.mkdirSync(path.join(__dirname, 'data'));
-}
-if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify({}), 'utf8');
+let db;
+
+async function connectDB() {
+  try {
+    const client = new MongoClient(MONGO_URI);
+    await client.connect();
+    db = client.db('calendar');
+    console.log('Conectat la MongoDB!');
+  } catch (e) {
+    console.error('Eroare MongoDB:', e);
+  }
 }
 
-// GET - citeste toate datele
-app.get('/api/vacations', (req, res) => {
+app.get('/api/vacations', async (req, res) => {
   try {
-    const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    res.json(data);
+    const doc = await db.collection('vacations').findOne({ _id: 'data' });
+    res.json(doc ? doc.data : {});
   } catch (e) {
     res.json({});
   }
 });
 
-// POST - salveaza datele
-app.post('/api/vacations', (req, res) => {
+app.post('/api/vacations', async (req, res) => {
   try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(req.body, null, 2), 'utf8');
+    await db.collection('vacations').updateOne(
+      { _id: 'data' },
+      { $set: { data: req.body } },
+      { upsert: true }
+    );
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Eroare la salvare' });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server pornit pe portul ${PORT}`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server pornit pe portul ${PORT}`);
+  });
 });
